@@ -7,6 +7,14 @@
         <title>Tic Tac Toe</title>
     </head>
     <body>
+        <div id="score-card">
+            <div class="player-score" id="player-1">
+                <span class="palyer-name">Player 1</span> Score : <span>0</span>
+            </div>
+            <div class="player-score" id="player-2">
+                <span class="palyer-name">Player 2</span> Score : <span>0</span>
+            </div>
+        </div>
         <div id="board-container">
             <div class="cell">x</div>
             <div class="column-border" id="col-border0"></div>
@@ -14,14 +22,23 @@
             <div class="column-border" id="col-border1"></div>
             <div class="cell">x</div>
             <div class="row-border" id="row-border0"></div>
-            <div class="cell">0</div>
+            <div class="cell">o</div>
             <div class="cell">x</div>
-            <div class="cell">0</div>
+            <div class="cell">o</div>
             <div class="row-border" id="row-border1"></div>
             <div class="cell">x</div>
-            <div class="cell">0</div>
+            <div class="cell">o</div>
             <div class="cell">x</div>
             <div id="strike"></div>
+        </div>
+        <div id="button-container">
+            <div><button id="play-comp">Play Against Computer</button></div>
+            <div><button id="Reset">
+                Reset
+            </button></div>
+            <div><button id="play-human">
+                Play Against Person
+            </button></div>
         </div>
     </body>
 </html>

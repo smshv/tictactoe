@@ -1,3 +1,9 @@
+@font-face {
+    font-family: 'pilot-command';
+    src: url('../fonts/pilot-command-font/PilotCommand-3zn93.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
 *{
     margin: 0px;
     padding: 0px;
@@ -6,19 +12,20 @@ body{
     height: 100vh;
     background-color: #172554;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
+    font-family: 'pilot-command';
 }
 #board-container{
     position: relative;
-    width: 600px;
-    height: 600px;
+    width: 500px;
+    height: 500px;
     display: grid;
     grid-template-rows: 1fr 4px 1fr 4px 1fr;
     grid-template-columns: 1fr 4px 1fr 4px 1fr;
-    border: 1px solid red;
     font-weight: 600;
-    font-size: 8rem;
+    font-size: 7rem;
 }
 .row-border, .column-border{
     background-color: white;
@@ -49,11 +56,41 @@ body{
 }
 #strike{
     position: absolute;
-    width: 848px;
+    width: 700px;
     height: 4px;
     background-color: white;
     transform: rotate(-45deg);
     transform-origin: left bottom;
     bottom: 0;
     left: 0;
+}
+#score-card{
+    padding: 40px;
+    display: flex;
+    align-self: stretch;
+    font-size: 2rem;
+    font-weight: 600;
+    color: white;
+    justify-content: space-between;
+}
+#button-container{
+    display: flex;
+    gap: 20px;
+    padding-bottom: 40px;
+}
+button{
+    width: 200px;
+    height: 60px;
+    font-family: inherit;
+    font-size: 1.1rem;
+    background: linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 35%, rgba(0,212,255,1) 100%);
+    border-radius: 6px;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    border: none;
+}
+#button-container div{
+    background-color: white;
+    border-radius: 6px;
 }
