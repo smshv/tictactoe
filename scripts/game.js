@@ -1,90 +1,190 @@
 const ROUND_LIM = 5;
+const nextRoundBttn = document.querySelector("next-bttn-wrap");
+const players=[null,null];
 
 const gameBoard = (()=>{
 
     let grids = [[0,0,0],[0,0,0],[0,0,0]];
-    let scores = [0,0];
-    let currentPlayer = Math.round(Math.random());
-    let roundPlayed = 0;
-    let possibleMoves = 9;
-    let opponent = 0; //1 means human, -1 means computer
+    let roundsRemained = 0;
+    let movesRemained = 0;
+    let currentPlayerId = 0;
 
-    const reset = ()=>{
+    const reset = (movesRemainedVal=0)=>{
         grids.fill(0);
-        roundPlayed = 0;
-        possibleMoves = 9;
-        scores.fill(0);
-        opponent = 0;
+        roundsRemained = ROUND_LIM;
+        movesRemained = movesRemainedVal;
+        currentPlayerId = Math.round(Math.random());
     }
-    const setOpponent = (opponentType)=>{ //1 means human, -1 means computer
-        opponent = opponentType;
-        roundPlayed = 0;
-        scores.fill(0);
-        nextRound();
-    }
-    const nextRound = ()=>{  //computer is always player 1
-        grids.fill(0);
-        possibleMoves = 9;
-        currentPlayer = Math.round(Math.random())
-        if (opponent === -1 && currentPlayer == 1){
-            grids[1][1] = 1;
+    const nextRound = ()=>{
+        if ( roundsRemained ){
+            grids.fill(0);
+            movesRemained = 9;
+            currentPlayerId = Math.round(Math.random());
         }
-
     }
-    function computerStep(){
-
+    function computerStep(row, col){
+        return true;
     }
     const playStep = (row, col)=>{
-        if (!grids[row][col] && opponent){
-            grids[row][col] = 1+currentPlayer;
-            possibleMoves -= 1;
-            if  ( opponent === -1 && currentPlayer == 0){
-                computerStep(row, col);
-            }
-            return true;
-        }
-        return false;
-    }
-    function checkValidGrid(row, col){
-        if ( row >-1 && col>-1 && row<3 && col<3 && 
-            grids[row][col] == (currentPlayer+1)){
+        if ( movesRemained && !grids[row][col]){
+            if ( players[currentPlayerId].isComputer() ){
+                return computerStep(row, col);
+            }else if( !grids[row][col]){
+                grids[row][col] = currentPlayerId+1;
+                possibleMoves -= 1;
                 return true;
+            }
         }
         return false;
     }
-    const decideRoundWinner = (row, col)=>{
-        if (possibleMoves < 5){
+    function decideGameWinner(){
+        if ( ! roundsRemained ){
+            if ( players[0].getScore() > players[1].getScore()){
+                return [true, 0]; 
+            }else if ( players[0].getScore < players[1].getScore() ){
+                return [true, 1];
+            }
+            gameDecided = true;
+        }else if ( players[currentPlayerId].getScore() == parseInt(ROUND_LIM/2)+1 ) {
+            return [true, currentPlayerId];
+        }else{
+            return [false, -1]; //gameDecided, gameWinnerId
+        }
+    }
+
+    const isRoundWinner = (row, col)=>{
+        if (movesRemained < 5){
             const delta = [[0, 1],[0,-1],[1,0],[-1,0],
                         [1,1],[-1,1],[1,-1],[-1,-1]];
+            let gameDecided = false;
+            let gameWinnerId = -1;
+            let isCurrentIdWinner = false;
+
             for (step in delta){
                 const new_row = row+step[0];
                 const new_col = col+step[1]; 
                 if (checkValidGrid(new_row, new_col)
                    && checkValidGrid(new_row+step[0], new_col+step[1])){
                     roundPlayed += 1;
-                    scores[currentPlayer] += 1;
-                    return currentPlayer;
+                    players[currentPlayerId].incScore();
+                    movesRemained = 0;
+                    isCurrentIdWinner = true;
+                    [gameDecided, gameWinnerId] = decideGameWinner();
+                    break;
                 }
             }
-            if ( possibleMoves === 0 ){ //round draws
-                roundPlayed += 1;
-                return -2;
-            }
         }
-        return -1;
+        return [isCurrentIdWinner, gameDecided, gameWinnerId]; 
     }
-    const decideGameWinner = ()=>{
-        if (roundPlayed === ROUND_LIM){
-            if ( scores[0] > scores[1] ){
-                return 0;
-            }else if ( scores[1] > scores[0] ){
-                return 1;
-            }else{
-                return -2;
-            }
+    function checkValidGrid(row, col){
+        if ( row >-1 && col>-1 && row<3 && col<3 && 
+            grids[row][col] == (currentPlayerId)){
+                return true;
         }
-        return -1;
+        return false;
+    }
+    function toggleCurrentPlayerId(){
+        currentPlayerId = 1 - currentPlayerId;
+    }
+    return {reset, nextRound, playStep, isRoundWinner, toggleCurrentPlayerId};
+})();
+
+const Player = (name, computer)=>{
+    const name = name;
+    let score = 0;
+    const isComputer = ()=>computer;
+    const incScore = () =>(score+1);
+    const getScore = () => score;
+    const getName = () => name;
+    return {incScore, getScore, getName, isComputer};
+}
+
+const displayController = (()=>{
+    const markers = ['X','O'];
+    const cells = document.querySelectorAll(".cell");
+    const scoreCard = document.querySelector("#score-card");
+    const strikeLine = document.querySelector("#strike");
+
+    const setMarker = (playerId, marker)=>{
+        if (!playerId || marker[playerId] !== marker[0]){
+            markers[playerId] = marker;
+        }else{
+            markers[0] = 'X';
+            markers[1] = 'O';
+            window.alert("There has been a conflict with marker chosen. Setting markers to defaults.")
+        }
+        
     }
     
-    return {reset, nextRound, playStep, decideRoundWinner, decideGameWinner, setOpponent};
-})();
+    function clearCells(){
+        cells.forEach(cell=>{
+            cell.textContent="";
+        });
+    }
+    const reset = (player_names=["Player 1", "Player 2"])=>{
+        nextRoundBttn.setAttribute("visibility", "false");
+        let player_num=0;
+        scoreCard.querySelectorAll("player-score").
+        forEach(x=>{
+            x.firstChild.textContent = `${player_names[player_num]}`;
+            x.lastChild.textContent = "0"
+            player_num += 1;
+        });
+        scoreCard.querySelector("#board-msg").textContent="";
+    }
+    const nextRound = ()=>{
+        clearCells();
+        strikeLine.setAttribute("visibility", "false");
+        strikeLine.setAttribute("transform", "none");
+        scoreCard.querySelector("#board-msg").textContent="";   
+    }
+    
+    const updateScore = (playerId)=>{
+        const score = player_lists[playerId].getScore();
+        
+    }
+    const putMarkerInGrid = (playerId, cell)=>{
+        cell.textContent = markers[playerId];
+    }
+    return {setMarker, reset, nextRound, updateScore, putMarkerInGrid};
+}
+)();
+
+document.querySelectorAll(".cell");
+document.querySelector("#reset").addEventListener("click", ()=>{
+    gameBoard.reset();
+    displayController.reset();
+})
+document.querySelectorAll("#play").forEach(bttn=>
+    bttn.addEventListener("click", ()=>{
+        players[0] = Player(prompt("Input Player 1's name:"), false);
+        if (bttn.getAttribute("against") === "human"){
+            players[1] = Player(prompt("Input Player 2's name:"), false);
+        }else{
+            players[1] = Player("Computer", true);
+        }
+        gameBoard.reset(9);
+        displayController.reset([players[0].getName(), players[1].getName()])
+}));
+document.querySelector("#next").addEventListener("click", ()=>{
+    gameBoard.nextRound();
+    displayController.nextRound();
+})
+document.querySelectorAll(".cell").forEach(cell=>{
+    cell.addEventListener("click", ()=>{
+        do{
+            const row = parseInt(cell.getAttribute("row"))
+            const col = parseInt(cell.getAttribute("col"));
+            if ( gameBoard.playStep(row, col) ){
+                const [isRoundWinner, gameDecided, gameWinnerId] = isRoundWinner(row, col);
+                if ( gameDecided ){
+
+                }else if ( isRoundWinner ){
+                    
+                }
+            }
+
+        }while( players[gameBoard.toggleCurrentPlayerId()].isComputer() )
+    });
+});
+

@@ -11,10 +11,15 @@
             <div class="player-score" id="player-1">
                 <span class="palyer-name">Player 1</span> Score : <span>0</span>
             </div>
+            <div id="board-msg"></div>
             <div class="player-score" id="player-2">
                 <span class="palyer-name">Player 2</span> Score : <span>0</span>
             </div>
         </div>
+        <div class="bttn-wrap" id="next-bttn-wrap">
+            <button id="next-round-bttn">Next Round</button>
+        </div>
+        
         <div id="board-container">
             <div class="cell">x</div>
             <div class="column-border" id="col-border0"></div>
@@ -32,11 +37,11 @@
             <div id="strike"></div>
         </div>
         <div id="button-container">
-            <div><button id="play-comp">Play Against Computer</button></div>
-            <div><button id="Reset">
+            <div class="bttn-wrap"><button class="play" against="computer">Play Against Computer</button></div>
+            <div class="bttn-wrap"><button id="Reset">
                 Reset
             </button></div>
-            <div><button id="play-human">
+            <div class="bttn-wrap"><button class="play" against="human">
                 Play Against Person
             </button></div>
         </div>
