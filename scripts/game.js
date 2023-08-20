@@ -1,6 +1,70 @@
 const ROUND_LIM = 5;
 const nextRoundBttn = document.querySelector("next-bttn-wrap");
 const players=[null,null];
+const Player = (name, computer)=>{
+    const name = name;
+    let score = 0;
+    const isComputer = ()=>computer;
+    const incScore = () =>(score+1);
+    const getScore = () => score;
+    const getName = () => name;
+    return {incScore, getScore, getName, isComputer};
+}
+
+const displayController = (()=>{
+    const markers = ['X','O'];
+    const cells = document.querySelectorAll(".cell");
+    const playerScores = [document.querySelector("player-1-score"), document.querySelector("player-2-score")];
+    const strikeLine = document.querySelector("#strike");
+    const boardMsg = document.querySelector("#board-msg");
+
+    const setMarker = (playerId, marker)=>{
+        if (!playerId || marker[playerId] !== marker[0]){
+            markers[playerId] = marker;
+        }else{
+            markers[0] = 'X';
+            markers[1] = 'O';
+            window.alert("There has been a conflict with marker chosen. Setting markers to defaults.")
+        }
+        
+    }
+    
+    function clearCells(){
+        cells.forEach(cell=>{
+            cell.textContent="";
+        });
+    }
+    const reset = (player_names=["Player 1", "Player 2"])=>{
+        nextRoundBttn.setAttribute("visibility", "false");
+        strikeLine.setAttribute("visibility", "false");
+        strikeLine.setAttribute("transform", "none");
+        document.querySelector("player-1-name").textContent = player_names[0];
+        document.querySelector("player-2-name").textContent = player_names[1];
+        playerScores[0].textContent = "0";
+        playerScores[1].textContent = '0';
+        boardMsg.textContent="";
+    }
+    const nextRound = ()=>{
+        clearCells();
+        strikeLine.setAttribute("visibility", "false");
+        strikeLine.setAttribute("transform", "none");
+        boardMsg.textContent="";   
+    }
+    
+    const updateScore = (roundWinnerId, gameDecided, gameWinnerId)=>{
+        playerScores[roundWinnerId].textContent = players[roundWinnerId].getScore().toString();
+        if ( gameDecided ){
+            boardMsg.textContent = `${players[gameWinnerId].getName()} wins the game!`;
+        }else{
+            boardMsg.textContent = `${players[roundWinnerId].getName()}`;
+        }
+    }
+    const putMarkerInGrid = (playerId, cell)=>{
+        cell.textContent = markers[playerId];
+    }
+    return {setMarker, reset, nextRound, updateScore, putMarkerInGrid};
+}
+)();
 
 const gameBoard = (()=>{
 
@@ -23,16 +87,30 @@ const gameBoard = (()=>{
         }
     }
     function computerStep(row, col){
+
         return true;
     }
-    const playStep = (row, col)=>{
-        if ( movesRemained && !grids[row][col]){
+    const playStep = (cell)=>{
+        if ( movesRemained ){
+            let validMove = false;
+            const [row, col] = [cell.getAttribute("row"), cell.getAttribute("col")]
             if ( players[currentPlayerId].isComputer() ){
-                return computerStep(row, col);
+                validMove = true;
+                [row,col] = computerStep(row, col);
             }else if( !grids[row][col]){
                 grids[row][col] = currentPlayerId+1;
-                possibleMoves -= 1;
-                return true;
+                movesRemained -= 1;
+                validMove = true;   
+            }
+            if (validMove){
+                displayController.putMarkerInGrid(currentPlayerId, row, col);
+                const [isIdRoundWinner, gameDecided, gameWinnerId] = isRoundWinner(row, col);
+                if ( isIdRoundWinner ){
+                    displayController.shoWinMoves(); //yet to implement
+                    displayController.updateScore(
+                        currentPlayerId, gameDecided, gameWinnerId
+                    );
+                }
             }
         }
         return false;
@@ -53,13 +131,12 @@ const gameBoard = (()=>{
     }
 
     const isRoundWinner = (row, col)=>{
+        let gameDecided = false;
+        let gameWinnerId = -1;
+        let isCurrentIdWinner = false;
         if (movesRemained < 5){
             const delta = [[0, 1],[0,-1],[1,0],[-1,0],
                         [1,1],[-1,1],[1,-1],[-1,-1]];
-            let gameDecided = false;
-            let gameWinnerId = -1;
-            let isCurrentIdWinner = false;
-
             for (step in delta){
                 const new_row = row+step[0];
                 const new_col = col+step[1]; 
@@ -89,67 +166,6 @@ const gameBoard = (()=>{
     return {reset, nextRound, playStep, isRoundWinner, toggleCurrentPlayerId};
 })();
 
-const Player = (name, computer)=>{
-    const name = name;
-    let score = 0;
-    const isComputer = ()=>computer;
-    const incScore = () =>(score+1);
-    const getScore = () => score;
-    const getName = () => name;
-    return {incScore, getScore, getName, isComputer};
-}
-
-const displayController = (()=>{
-    const markers = ['X','O'];
-    const cells = document.querySelectorAll(".cell");
-    const scoreCard = document.querySelector("#score-card");
-    const strikeLine = document.querySelector("#strike");
-
-    const setMarker = (playerId, marker)=>{
-        if (!playerId || marker[playerId] !== marker[0]){
-            markers[playerId] = marker;
-        }else{
-            markers[0] = 'X';
-            markers[1] = 'O';
-            window.alert("There has been a conflict with marker chosen. Setting markers to defaults.")
-        }
-        
-    }
-    
-    function clearCells(){
-        cells.forEach(cell=>{
-            cell.textContent="";
-        });
-    }
-    const reset = (player_names=["Player 1", "Player 2"])=>{
-        nextRoundBttn.setAttribute("visibility", "false");
-        let player_num=0;
-        scoreCard.querySelectorAll("player-score").
-        forEach(x=>{
-            x.firstChild.textContent = `${player_names[player_num]}`;
-            x.lastChild.textContent = "0"
-            player_num += 1;
-        });
-        scoreCard.querySelector("#board-msg").textContent="";
-    }
-    const nextRound = ()=>{
-        clearCells();
-        strikeLine.setAttribute("visibility", "false");
-        strikeLine.setAttribute("transform", "none");
-        scoreCard.querySelector("#board-msg").textContent="";   
-    }
-    
-    const updateScore = (playerId)=>{
-        const score = player_lists[playerId].getScore();
-        
-    }
-    const putMarkerInGrid = (playerId, cell)=>{
-        cell.textContent = markers[playerId];
-    }
-    return {setMarker, reset, nextRound, updateScore, putMarkerInGrid};
-}
-)();
-
 document.querySelectorAll(".cell");
 document.querySelector("#reset").addEventListener("click", ()=>{
     gameBoard.reset();
@@ -173,17 +189,7 @@ document.querySelector("#next").addEventListener("click", ()=>{
 document.querySelectorAll(".cell").forEach(cell=>{
     cell.addEventListener("click", ()=>{
         do{
-            const row = parseInt(cell.getAttribute("row"))
-            const col = parseInt(cell.getAttribute("col"));
-            if ( gameBoard.playStep(row, col) ){
-                const [isRoundWinner, gameDecided, gameWinnerId] = isRoundWinner(row, col);
-                if ( gameDecided ){
-
-                }else if ( isRoundWinner ){
-                    
-                }
-            }
-
+            gameBoard.playStep(cell);
         }while( players[gameBoard.toggleCurrentPlayerId()].isComputer() )
     });
 });
