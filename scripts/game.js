@@ -131,7 +131,7 @@ const gameBoard = (()=>{
         let SelectedCell = cell;
         if ( movesRemained ){
             if ( players[currentPlayerId].isComputer()){
-                [row, col] = computerStep(cell);
+                [row, col] = computerStep();
                 isValidMove = true;
                 SelectedCell = document.querySelector(`.cell[row="${row}"][col="${col}"]`);
             }else{
