@@ -55,16 +55,6 @@ body{
     align-items: center;
     color: white;
 }
-#strike{
-    position: absolute;
-    width: 700px;
-    height: 4px;
-    background-color: white;
-    transform: rotate(-45deg);
-    transform-origin: left bottom;
-    bottom: 0;
-    left: 0;
-}
 #score-card{
     padding: 30px;
     display: flex;
