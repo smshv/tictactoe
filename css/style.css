@@ -81,6 +81,9 @@ button{
     background-clip: text;
     border: none;
 }
+button:hover{
+    font-size: 1.2rem;
+}
 .bttn-wrap{
     background-color: white;
     border-radius: 6px;
