@@ -79,6 +79,7 @@ const gameBoard = (()=>{
         currentPlayerId = Math.round(Math.random());
         [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]
         if ( movesRemained ){
+            displayController.nextRound();
             if ( players[currentPlayerId].isComputer() ){
                 playStep();
             }
@@ -88,15 +89,7 @@ const gameBoard = (()=>{
     }
     const nextRound = ()=>{
         if ( roundsRemained ){
-            grids.forEach(x=>x.fill(0));
-            movesRemained = 9;
-            [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]
-            currentPlayerId = Math.round(Math.random());
-            displayController.nextRound();
-            if ( players[currentPlayerId].isComputer() ){
-                playStep();
-            }
-            displayController.displayTurnMsg(currentPlayerId);
+            reset(9, roundsRemained);
         }
     }
     const getCurrentPlayerId = ()=>currentPlayerId;
@@ -119,7 +112,7 @@ const gameBoard = (()=>{
                     }
                 }
             }
-            maxGain = Math.floor(maxGain); //scale down the gain so that is comparable to lastMovegain
+            maxGain = Math.floor(maxGain); //scale down the gain so that it is comparable to lastMoveGain
             if ( maxGain > lastMoveGain ){ 
                 lastMoveGain = maxGain;
                 return [bestRow, bestCol]
