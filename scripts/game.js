@@ -139,8 +139,8 @@ const gameBoard = (()=>{
                 if( !grids[row][col]){
                     grids[row][col] = (currentPlayerId+1);
                     isValidMove = true;   
+                    [lastMoveGain, nextAvailRow, nextAvailCol] = getMaxGain(row, col);
                 }
-                [lastMoveGain, nextAvailRow, nextAvailCol] = getMaxGain(row, col);
             }
         }
         if (isValidMove){
