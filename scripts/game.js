@@ -38,16 +38,20 @@ const displayController = (()=>{
     }
     
     const updateScore = (roundWinnerId, gameDecided, gameWinnerId)=>{
-        playerScores[roundWinnerId].textContent = players[roundWinnerId].getScore().toString();
+        nextRoundBttn.style.visibility = "visible";
+        if ( roundWinnerId != -1){
+            playerScores[roundWinnerId].textContent = players[roundWinnerId].getScore().toString();
+            boardMsg.textContent = `${players[roundWinnerId].getName()} wins this round`;
+        }else{
+            boardMsg.textContent = "Round draws";
+        }
+        
         if ( gameDecided ){
             if ( gameWinnerId === -1){
                 boardMsg.textContent = "Game draws";
             }else{
                 boardMsg.textContent = `${players[gameWinnerId].getName()} wins the game!`;
             }
-        }else{
-            boardMsg.textContent = `${players[roundWinnerId].getName()} wins this round`;
-            nextRoundBttn.style.visibility = "visible";
         }
     }
     const putMarkerInGrid = (playerId, cell)=>{
@@ -62,25 +66,25 @@ const displayController = (()=>{
 
 const gameBoard = (()=>{
 
-    let grids = [[0,0,0],[0,0,0],[0,0,0]];
+    let grids = [[0,0,0],[0,0,0],[0,0,0]]; //0 means empty, 1 means player 1, 2 ...
     let roundsRemained = 0;
     let movesRemained = 0;
     let currentPlayerId = 0;
-    let [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1];
+    let [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]; //lastMoveGain denotes the gain value of the move played by last player//nextAvailRow, nextAvailCol denotes the grid loc that thes last player can play to maximize the gain
 
     const reset = (movesRemainedVal=0, roundsRemainedVal=0)=>{
         grids.forEach(x=>x.fill(0));
         roundsRemained = roundsRemainedVal;
         movesRemained = movesRemainedVal;
         currentPlayerId = Math.round(Math.random());
+        [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]
         if ( movesRemained ){
             if ( players[currentPlayerId].isComputer() ){
                 playStep();
-            }else{
-                displayController.displayTurnMsg(currentPlayerId);
             }
+            displayController.displayTurnMsg(currentPlayerId);
+            
         }
-        [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]
     }
     const nextRound = ()=>{
         if ( roundsRemained ){
@@ -89,24 +93,25 @@ const gameBoard = (()=>{
             [lastMoveGain, nextAvailRow, nextAvailCol] = [-1, 1, 1]
             currentPlayerId = Math.round(Math.random());
             displayController.nextRound();
-            displayController.displayTurnMsg(currentPlayerId);
             if ( players[currentPlayerId].isComputer() ){
                 playStep();
             }
+            displayController.displayTurnMsg(currentPlayerId);
         }
     }
     const getCurrentPlayerId = ()=>currentPlayerId;
     function computerStep(){
-        if (movesRemained>7 && (!grids[1][1])){
+        if (movesRemained>7 && (!grids[1][1])){ // Then computer will choose 1,1 as its first move, if available
             grids[1][1] = currentPlayerId+1;
             return [1,1];
         }else{
-            let maxGain = - 1, bestRow, bestCol, tmp; 
+            let maxGain = - 1, bestRow, bestCol, tmp;
+            /*Find the move that maximizes computer gain*/ 
             for (let row = 0; row < 3; row++){
                 for (let col = 0; col < 3; col++){
                     if (!grids[row][col]){
-                        tmp = getMaxGain(row, col);
-                        if (tmp[0]>maxGain){
+                        tmp = getMaxGain(row, col, 0.25); //modify the gain so that
+                        if (tmp[0]>maxGain){ //diagonal cell is preferred
                             maxGain = tmp[0];
                             bestRow = row;
                             bestCol = col;
@@ -114,13 +119,12 @@ const gameBoard = (()=>{
                     }
                 }
             }
-            if ( maxGain > lastMoveGain ){
-                grids[bestRow][bestCol] =  (currentPlayerId+1);
+            maxGain = Math.floor(maxGain); //scale down the gain so that is comparable to lastMovegain
+            if ( maxGain > lastMoveGain ){ 
                 lastMoveGain = maxGain;
                 return [bestRow, bestCol]
 
             }else{
-                grids[nextAvailRow][nextAvailCol] = (currentPlayerId+1);
                 lastMoveGain = 0;
                 return [nextAvailRow, nextAvailCol];
             }
@@ -137,24 +141,31 @@ const gameBoard = (()=>{
             }else{
                 [row, col] = [parseInt(cell.getAttribute("row")), parseInt(cell.getAttribute("col"))];
                 if( !grids[row][col]){
-                    grids[row][col] = (currentPlayerId+1);
                     isValidMove = true;   
                     [lastMoveGain, nextAvailRow, nextAvailCol] = getMaxGain(row, col);
                 }
             }
         }
         if (isValidMove){
+            grids[row][col] = currentPlayerId+1;
             movesRemained -= 1;
             displayController.putMarkerInGrid(currentPlayerId, SelectedCell);
-            if ( lastMoveGain == 3 ){
+            if ( lastMoveGain == 3 || !movesRemained){
                 movesRemained = 0;
                 roundsRemained -= 1;
-                players[currentPlayerId].incScore();
+                let roundWinnerId;
+                if ( lastMoveGain == 3){
+                    players[currentPlayerId].incScore();
+                    roundWinnerId = currentPlayerId;
+                }else{
+                    roundWinnerId = -1;
+                }
                 const [isGameDecided, gameWinnerId] = decideGameWinner();
                 displayController.updateScore(
-                    currentPlayerId, isGameDecided, gameWinnerId
+                    roundWinnerId, isGameDecided, gameWinnerId
                 );
-            }else{
+            }
+            else{
                 toggleCurrentPlayerId();
             }
         }
@@ -177,39 +188,43 @@ const gameBoard = (()=>{
             return [false, -1]; //gameDecided, gameWinnerId
         }
     }
-    function getMaxGain(row, col){
-        let [maxGain, new_row, new_col] = [-1, -1, -1], possibleMoves = [[0,1],[1,0]];
+    function getMaxGain(row, col, gain_modifier=0){
+        let [maxGain, availRow, availCol] = [-1, -1, -1], possibleMoves, init_gain=1;
         if ( row === col ){  //check for diagonal streak
-            possibleMoves.push([1,1]);
+            possibleMoves = [[1,1],[0,1],[1,0]];
+            init_gain += gain_modifier; //diaginal grid has higher chance so higher gain
         }else if( (2-row) === col){
-            possibleMoves.push([1,-1]);
-        }
+            possibleMoves = [[1,-1],[0,1],[1,0]];//
+            init_gain += gain_modifier;
+        }else{
+            possibleMoves = [[0,1],[1,0]];
+        }//
         for ( step of possibleMoves){
-            const tmp = getMoveGain(row, col, step);
+            const tmp = getMoveGain(row, col, step, init_gain);
             if (tmp[0] > maxGain){
-                [maxGain,new_row, new_col] = tmp;
+                [maxGain,availRow, availCol] = tmp;
             }
         }
-        return [maxGain, new_row, new_col];
+        return [maxGain, availRow, availCol];
     }
-    function getMoveGain(row, col, step){
+    function getMoveGain(row, col, step, init_gain){
 
-        let new_row=row, new_col=col, gain = 1, depth = 2, cr_row=row, cr_col=col;
+        let availRow=row, availCol=col, gain = init_gain, depth = 2, cr_row=row, cr_col=col;
 
         while ( depth>0 ){
-            cr_row = (3+cr_row+step[0])%3;
-            cr_col = (3+cr_col+step[1])%3;
+            cr_row = (3+cr_row+step[0])%3; //to make
+            cr_col = (3+cr_col+step[1])%3;//movememt circular (0,1)->(0,2)->(0,0)
             if ( grids[cr_row][cr_col] == (currentPlayerId+1) ){
                 gain += 1;
-            }else if ( !grids[cr_row][cr_col]){
-                new_row = cr_row;
-                new_col = cr_col;
+            }else if ( !grids[cr_row][cr_col] ){
+                availRow = cr_row;
+                availCol = cr_col;
             }else{
                 gain -= 1;
             }
             depth -= 1;
         }
-        return [gain, new_row, new_col];    
+        return [gain, availRow, availCol];    
     }
     function toggleCurrentPlayerId(){
         currentPlayerId = 1 - currentPlayerId;
@@ -232,8 +247,8 @@ document.querySelectorAll(".play").forEach(bttn=>
         }else{
             players[1] = Player("Computer", true);
         }
-        gameBoard.reset(9, ROUND_LIM);
-        displayController.reset([players[0].getName(), players[1].getName()]);    
+        displayController.reset([players[0].getName(), players[1].getName()]);
+        gameBoard.reset(9, ROUND_LIM);    
 }));
 document.querySelector("#next").addEventListener("click", ()=>{
     gameBoard.nextRound();
